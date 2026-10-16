@@ -25,6 +25,17 @@ button,input,select{font:inherit;color:inherit}
 .brand h1{font-family:var(--f-display);font-weight:700;font-size:clamp(22px,3vw,30px);letter-spacing:-.01em;margin:0;line-height:1.15;text-wrap:balance}
 .brand p{margin:4px 0 0;color:var(--ink-2)}
 .ver{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);opacity:.7;margin-left:6px;white-space:nowrap}
+.top .brand{flex:1 1 520px;min-width:0}
+.h1row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.af{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.af:empty{display:none}
+.af .lb{font-size:12px;color:var(--ink-3)}
+.afc{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;border:1px solid var(--line);background:var(--panel-2);border-radius:999px;padding:3px 6px 3px 10px;cursor:pointer;color:var(--ink)}
+.afc b{font-weight:600}.afc .k{color:var(--ink-3)}
+.afc .x2{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--line);font-size:11px;line-height:1;color:var(--ink-2)}
+.afc:hover{border-color:var(--ink-3)}.afc:hover .x2{background:var(--ink-2);color:#fff}
+.afc.ch{border-color:var(--cc);background:color-mix(in srgb,var(--cc) 10%,#fff)}
+.afclear{font-size:12px;border:0;background:none;color:var(--accent);cursor:pointer;text-decoration:underline;padding:2px 4px}
 .top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{border-color:var(--ink-3)}
@@ -157,8 +168,8 @@ td.num{text-align:center;font-family:var(--f-mono)}
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>สินค้า Beger ในแต่ละห้าง</h1>
-      <p>เลือกห้างเพื่อดูว่ามีสินค้าตัวไหนวางขาย ขนาดไหน และรหัสสินค้าของห้าง <span class="ver" title="อัปเดตล่าสุด 14 ต.ค. 2569">v3.1 · 16/10/69</span></p>
+      <div class="h1row"><h1>สินค้า Beger ในแต่ละห้าง</h1><div class="af" id="af" aria-live="polite"></div></div>
+      <p>เลือกห้างเพื่อดูว่ามีสินค้าตัวไหนวางขาย ขนาดไหน และรหัสสินค้าของห้าง <span class="ver" title="อัปเดตล่าสุด 14 ต.ค. 2569">v3.2 · 16/10/69</span></p>
     </div>
     <div class="top-actions">
       <span class="src" id="src"></span>
@@ -267,6 +278,27 @@ function productsFor(){
     return true;}).sort((a,b)=>a.p[1].localeCompare(b.p[1],'th')||a.p[0].localeCompare(b.p[0]));
 }
 
+function renderAF(){
+  const L=[];const gl={'__none':'ยังไม่ระบุเกรด'};
+  if(S.chain>=0)L.push(['chain','ห้าง',DATA.chains[S.chain],CHAIN_COLORS[S.chain]]);
+  if(S.cat)L.push(['cat','หมวด',S.cat]);
+  if(S.q)L.push(['q','ค้นหา','"'+$('#q').value.trim()+'"']);
+  if(S.size)L.push(['size','ขนาด',S.size]);
+  if(S.grade)L.push(['grade','เกรด',gl[S.grade]||S.grade]);
+  if(S.slf)L.push(['slf','อายุสินค้า',S.slf==='none'?'ไม่มีข้อมูล':'≤ '+S.slf+' เดือน']);
+  if(S.gap)L.push(['gap','',S.chain<0?'ยังไม่มีห้างไหนขาย':'ห้างนี้ยังไม่มี']);
+  $('#af').innerHTML=L.length?`<span class="lb">กำลังกรอง:</span>${L.map(([k,lab,v,cc])=>`<button class="afc${cc?' ch':''}" data-clr="${k}"${cc?` style="--cc:${cc}"`:''} title="ล้างตัวกรองนี้">${lab?`<span class="k">${esc(lab)}</span>`:''}<b>${esc(v)}</b><span class="x2">×</span></button>`).join('')}${L.length>1?'<button class="afclear" data-clr="all">ล้างทั้งหมด</button>':''}`:'';
+}
+function clearF(k){
+  const all=k==='all';
+  if(all||k==='chain')S.chain=-1;
+  if(all||k==='cat')S.cat='';
+  if(all||k==='q'){S.q='';$('#q').value='';}
+  if(all||k==='size'){S.size='';$('#size').value='';}
+  if(all||k==='grade'){S.grade='';$('#grade').value='';}
+  if(all||k==='slf'){S.slf='';$('#slf').value='';}
+  if(all||k==='gap'||k==='chain'){S.gap=false;$('#gap').checked=false;}
+  S.limit=60;save();render();}
 function renderChains(){
   const P=DATA.products;const tot=[0,1,2,3].map(c=>({sku:DATA.skus.filter(s=>s[0]===c).length,prod:P.filter(p=>p.by[c]).length}));
   const all=`<button class="chain all" data-c="-1" aria-pressed="${S.chain===-1}" style="--cc:var(--ink)"><div class="nm">ทุกห้าง</div><div class="st"><span><b>${P.length}</b>สินค้า</span><span><b>${DATA.skus.length.toLocaleString()}</b>SKU</span>${P.some(p=>!p.skus.length)?`<span><b>${P.filter(p=>!p.skus.length).length}</b>ยังไม่มีห้างขาย</span>`:''}</div></button>`;
@@ -285,7 +317,7 @@ function renderSizes(){
 function dots(p){const cs=S.chain>=0&&!S.gap?[S.chain]:[0,1,2,3];return `<div class="dots">${cs.map(c=>`<span class="dot ${p.by[c]?'on':''}" style="--cc:${CHAIN_COLORS[c]}" title="${esc(DATA.chains[c])}: ${p.by[c]} SKU">${CHAIN_SHORT[c]}</span>`).join('')}</div>`;}
 
 function render(){
-  renderChains();renderCats();
+  renderChains();renderCats();renderAF();
   $('#gapWrap').hidden=S.view==='list'||(S.chain<0&&!DATA.products.some(p=>!p.skus.length));
   $('#gapTxt').textContent=S.chain<0?'เฉพาะสินค้าที่ยังไม่มีห้างไหนขาย':'เฉพาะสินค้าที่ห้างนี้ยังไม่มี';
   document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.view));
@@ -363,6 +395,7 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('button,[data-p]');if(!t)return;
   if(t.dataset.copy!==undefined){e.stopPropagation();const v=t.dataset.copy;
     (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast('คัดลอก '+v+' แล้ว')).catch(()=>toast(v));return;}
+  if(t.dataset.clr){clearF(t.dataset.clr);return;}
   if(t.dataset.gc){const [c,g]=t.dataset.gc.split('|');S.chain=+c;S.grade=g;$('#grade').value=g;S.view='grid';S.gap=false;$('#gap').checked=false;S.limit=60;save();render();window.scrollTo({top:0,behavior:'smooth'});return;}
   if(t.dataset.c!==undefined){S.chain=+t.dataset.c;S.gap=false;$('#gap').checked=false;S.limit=60;save();render();return;}
   if(t.dataset.cat!==undefined){S.cat=t.dataset.cat;S.limit=60;render();return;}
